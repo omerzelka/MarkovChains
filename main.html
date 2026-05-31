@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markov Zinciri Göç Modeli</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .grid-container { display: flex; gap: 20px; margin-bottom: 20px; }
+        .panel { flex: 1; background: #ecf0f1; padding: 20px; border-radius: 8px; }
+        .matrix-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .matrix-row input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
+        label { font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #3498db; }
+        canvas { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Bölgesel Göç Modeli Simülasyonu</h1>
+    
+    <div class="grid-container">
+        <div class="panel">
+            <label>Geçiş Matrisi (3x3 Sütun Toplamları 1 Olmalı)</label>
+            <div id="matrix-inputs">
+                <div class="matrix-row">
+                    <input type="number" id="p00" step="0.01" value="0.5">
+                    <input type="number" id="p01" step="0.01" value="0.2">
+                    <input type="number" id="p02" step="0.01" value="0.3">
+                </div>
+                <div class="matrix-row">
+                    <input type="number" id="p10" step="0.01" value="0.3">
+                    <input type="number" id="p11" step="0.01" value="0.6">
+                    <input type="number" id="p12" step="0.01" value="0.1">
+                </div>
+                <div class="matrix-row">
+                    <input type="number" id="p20" step="0.01" value="0.2">
+                    <input type="number" id="p21" step="0.01" value="0.2">
+                    <input type="number" id="p22" step="0.01" value="0.6">
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="input-group">
+                <label>Başlangıç Nüfus Dağılımı (Bölge 1, 2, 3)</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="pop1" step="0.1" value="1.0" title="Bölge 1">
+                    <input type="number" id="pop2" step="0.1" value="0.0" title="Bölge 2">
+                    <input type="number" id="pop3" step="0.1" value="0.0" title="Bölge 3">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Simülasyon Süresi (Yıl)</label>
+                <input type="number" id="years" value="15" min="1">
+            </div>
+            <button onclick="runSimulation()">Simülasyonu Başlat</button>
+        </div>
+    </div>
+
+    <canvas id="simulationChart" width="800" height="400"></canvas>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    function runSimulation() {
+        // Matris Değerlerini Çek
+        const P = [
+            [parseFloat(document.getElementById('p00').value), parseFloat(document.getElementById('p01').value), parseFloat(document.getElementById('p02').value)],
+            [parseFloat(document.getElementById('p10').value), parseFloat(document.getElementById('p11').value), parseFloat(document.getElementById('p12').value)],
+            [parseFloat(document.getElementById('p20').value), parseFloat(document.getElementById('p21').value), parseFloat(document.getElementById('p22').value)]
+        ];
+
+        // Başlangıç Değerleri
+        let current_pop = [
+            parseFloat(document.getElementById('pop1').value),
+            parseFloat(document.getElementById('pop2').value),
+            parseFloat(document.getElementById('pop3').value)
+        ];
+        
+        const years = parseInt(document.getElementById('years').value);
+
+        // Veri Saklama
+        const history1 = [current_pop[0]];
+        const history2 = [current_pop[1]];
+        const history3 = [current_pop[2]];
+        const labels = [0];
+
+        // Markov Zinciri İterasyonu (Matris Çarpımı)
+        for (let t = 1; t <= years; t++) {
+            let next_pop = [
+                P[0][0]*current_pop[0] + P[0][1]*current_pop[1] + P[0][2]*current_pop[2],
+                P[1][0]*current_pop[0] + P[1][1]*current_pop[1] + P[1][2]*current_pop[2],
+                P[2][0]*current_pop[0] + P[2][1]*current_pop[1] + P[2][2]*current_pop[2]
+            ];
+            
+            current_pop = next_pop;
+            
+            history1.push(current_pop[0]);
+            history2.push(current_pop[1]);
+            history3.push(current_pop[2]);
+            labels.push(t);
+        }
+
+        // Grafiği Çizdirme
+        drawChart(labels, history1, history2, history3);
+    }
+
+    function drawChart(labels, data1, data2, data3) {
+        const ctx = document.getElementById('simulationChart').getContext('2d');
+        
+        // Eski grafik varsa temizle
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Bölge 1', data: data1, borderColor: '#3498db', backgroundColor: '#3498db', fill: false, tension: 0.1, markerType: 'circle' },
+                    { label: 'Bölge 2', data: data2, borderColor: '#e67e22', backgroundColor: '#e67e22', fill: false, tension: 0.1 },
+                    { label: 'Bölge 3', data: data3, borderColor: '#2ecc71', backgroundColor: '#2ecc71', fill: false, tension: 0.1 }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Nüfus Oranı' },
+                        suggestedMax: 1
+                    },
+                    x: {
+                        title: { display: true, text: 'Zaman (Yıl)' }
+                    }
+                },
+                plugins: {
+                    title: { display: true, text: 'Denge Dağılımına Yakınsama Grafiği', font: { size: 16 } }
+                }
+            }
+        });
+    }
+
+    // Sayfa yüklendiğinde varsayılan ayarlarla bir kez çalıştır
+    window.onload = runSimulation;
+</script>
+
+</body>
+</html>
