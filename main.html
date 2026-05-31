@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markov Zinciri Göç Modeli</title>
+    <title>Markov Chain Regional Migration Model</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
@@ -24,11 +24,11 @@
 <body>
 
 <div class="container">
-    <h1>Bölgesel Göç Modeli Simülasyonu</h1>
+    <h1>Regional Migration Simualtion</h1>
     
     <div class="grid-container">
         <div class="panel">
-            <label>Geçiş Matrisi (3x3 Sütun Toplamları 1 Olmalı)</label>
+            <label>Transition Matrix (3x3 - column sums must be 1)</label>
             <div id="matrix-inputs">
                 <div class="matrix-row">
                     <input type="number" id="p00" step="0.01" value="0.5">
@@ -50,7 +50,7 @@
 
         <div class="panel">
             <div class="input-group">
-                <label>Başlangıç Nüfus Dağılımı (Bölge 1, 2, 3)</label>
+                <label>Starting X0 (Region 1, 2, 3)</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="number" id="pop1" step="0.1" value="1.0" title="Bölge 1">
                     <input type="number" id="pop2" step="0.1" value="0.0" title="Bölge 2">
@@ -58,10 +58,10 @@
                 </div>
             </div>
             <div class="input-group">
-                <label>Simülasyon Süresi (Yıl)</label>
+                <label>Simulation Time (Year)</label>
                 <input type="number" id="years" value="15" min="1">
             </div>
-            <button onclick="runSimulation()">Simülasyonu Başlat</button>
+            <button onclick="runSimulation()">Start the Simulation</button>
         </div>
     </div>
 
@@ -72,7 +72,6 @@
     let chartInstance = null;
 
     function runSimulation() {
-        // Matris Değerlerini Çek
         const P = [
             [parseFloat(document.getElementById('p00').value), parseFloat(document.getElementById('p01').value), parseFloat(document.getElementById('p02').value)],
             [parseFloat(document.getElementById('p10').value), parseFloat(document.getElementById('p11').value), parseFloat(document.getElementById('p12').value)],
@@ -94,7 +93,6 @@
         const history3 = [current_pop[2]];
         const labels = [0];
 
-        // Markov Zinciri İterasyonu (Matris Çarpımı)
         for (let t = 1; t <= years; t++) {
             let next_pop = [
                 P[0][0]*current_pop[0] + P[0][1]*current_pop[1] + P[0][2]*current_pop[2],
@@ -110,14 +108,12 @@
             labels.push(t);
         }
 
-        // Grafiği Çizdirme
         drawChart(labels, history1, history2, history3);
     }
 
     function drawChart(labels, data1, data2, data3) {
         const ctx = document.getElementById('simulationChart').getContext('2d');
-        
-        // Eski grafik varsa temizle
+
         if (chartInstance) {
             chartInstance.destroy();
         }
@@ -137,21 +133,20 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        title: { display: true, text: 'Nüfus Oranı' },
+                        title: { display: true, text: 'Population Rate' },
                         suggestedMax: 1
                     },
                     x: {
-                        title: { display: true, text: 'Zaman (Yıl)' }
+                        title: { display: true, text: 'Time (Year)' }
                     }
                 },
                 plugins: {
-                    title: { display: true, text: 'Denge Dağılımına Yakınsama Grafiği', font: { size: 16 } }
+                    title: { display: true, text: 'Convergence Graph to Equilibrium Distribution', font: { size: 16 } }
                 }
             }
         });
     }
 
-    // Sayfa yüklendiğinde varsayılan ayarlarla bir kez çalıştır
     window.onload = runSimulation;
 </script>
 
