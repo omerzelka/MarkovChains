@@ -2,7 +2,7 @@
 
 This project is an interactive web simulation that models the movement of a population across three different regions (City, Suburb, Rural) as a **Markov Chain**, and analyzes the long-run behavior (steady-state) of this population.
 
-> 🚀 **Live Application:** Click [Here](INSERT_YOUR_GITHUB_PAGES_LINK_HERE) to run the simulation directly in your browser. No installation required!
+> 🚀 **Live Application:** Click [Here](https://omerzelka.github.io/MarkovChains/) to run the simulation directly in your browser. No installation required!
 
 ## 📌 Project Purpose & Theoretical Background
 
@@ -26,7 +26,7 @@ The simulation runs entirely on the client-side (in the browser) and is develope
 
 ### Option 1: Via Web (Recommended)
 You can instantly test the application without downloading any files:
-👉 **[Go to Live Simulation](INSERT_YOUR_GITHUB_PAGES_LINK_HERE)**
+👉 **[Go to Live Simulation]([INSERT_YOUR_GITHUB_PAGES_LINK_HERE](https://omerzelka.github.io/MarkovChains/))**
 
 ### Option 2: Local Machine
 If you prefer to run the project offline on your local computer:
