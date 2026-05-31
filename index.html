@@ -3,32 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markov Chain Regional Migration Model</title>
+    <title>Markov Chain Regiional Migration Model</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; }
-        .grid-container { display: flex; gap: 20px; margin-bottom: 20px; }
-        .panel { flex: 1; background: #ecf0f1; padding: 20px; border-radius: 8px; }
+        h2 { color: #34495e; font-size: 1.2em; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
+        .grid-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .panel { flex: 1; min-width: 300px; background: #ecf0f1; padding: 20px; border-radius: 8px; }
         .matrix-row { display: flex; gap: 10px; margin-bottom: 10px; }
         .matrix-row input { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; }
         label { font-weight: bold; font-size: 14px; display: block; margin-bottom: 5px; }
         .input-group { margin-bottom: 15px; }
         .input-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        button { width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background 0.3s; }
+        button { width: 100%; padding: 12px; background-color: #2980b9; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
         button:hover { background-color: #3498db; }
-        canvas { margin-top: 20px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white; font-family: monospace; font-size: 14px; }
+        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .infinity-row { font-weight: bold; background-color: #e8f6f3 !important; color: #16a085; }
+        
+        .results-container { display: flex; flex-direction: column; gap: 30px; margin-top: 30px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Regional Migration Simualtion</h1>
+    <h1>Regional Migration Simulation</h1>
     
     <div class="grid-container">
         <div class="panel">
-            <label>Transition Matrix (3x3 - column sums must be 1)</label>
+            <label>Transition Matrix (3x3)</label>
             <div id="matrix-inputs">
                 <div class="matrix-row">
                     <input type="number" id="p00" step="0.01" value="0.5">
@@ -50,22 +58,43 @@
 
         <div class="panel">
             <div class="input-group">
-                <label>Starting X0 (Region 1, 2, 3)</label>
+                <label> Starting Population (City, Suburb, Rural)</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="number" id="pop1" step="0.1" value="1.0" title="Bölge 1">
-                    <input type="number" id="pop2" step="0.1" value="0.0" title="Bölge 2">
-                    <input type="number" id="pop3" step="0.1" value="0.0" title="Bölge 3">
+                    <input type="number" id="pop1" step="0.1" value="1.0" title="Şehir">
+                    <input type="number" id="pop2" step="0.1" value="0.0" title="Banliyö">
+                    <input type="number" id="pop3" step="0.1" value="0.0" title="Kırsal">
                 </div>
             </div>
             <div class="input-group">
                 <label>Simulation Time (Year)</label>
-                <input type="number" id="years" value="15" min="1">
+                <input type="number" id="years" value="5" min="1">
             </div>
-            <button onclick="runSimulation()">Start the Simulation</button>
+            <button onclick="runSimulation()">Execute the Simulation</button>
         </div>
     </div>
 
-    <canvas id="simulationChart" width="800" height="400"></canvas>
+    <div class="results-container">
+        <div>
+            <h2>Data Table: The Evolution of Population Distribution</h2>
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Year (t)</th>
+                        <th>City</th>
+                        <th>Suburb</th>
+                        <th>Rural</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h2>Graphical Convergence</h2>
+            <canvas id="simulationChart" width="800" height="350"></canvas>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -78,7 +107,6 @@
             [parseFloat(document.getElementById('p20').value), parseFloat(document.getElementById('p21').value), parseFloat(document.getElementById('p22').value)]
         ];
 
-        // Başlangıç Değerleri
         let current_pop = [
             parseFloat(document.getElementById('pop1').value),
             parseFloat(document.getElementById('pop2').value),
@@ -87,11 +115,19 @@
         
         const years = parseInt(document.getElementById('years').value);
 
-        // Veri Saklama
         const history1 = [current_pop[0]];
         const history2 = [current_pop[1]];
         const history3 = [current_pop[2]];
         const labels = [0];
+
+        const tbody = document.querySelector('#dataTable tbody');
+        tbody.innerHTML = '';
+        tbody.innerHTML += `<tr>
+            <td>0</td>
+            <td>${current_pop[0].toFixed(3)}</td>
+            <td>${current_pop[1].toFixed(3)}</td>
+            <td>${current_pop[2].toFixed(3)}</td>
+        </tr>`;
 
         for (let t = 1; t <= years; t++) {
             let next_pop = [
@@ -106,42 +142,52 @@
             history2.push(current_pop[1]);
             history3.push(current_pop[2]);
             labels.push(t);
+
+            tbody.innerHTML += `<tr>
+                <td>${t}</td>
+                <td>${current_pop[0].toFixed(3)}</td>
+                <td>${current_pop[1].toFixed(3)}</td>
+                <td>${current_pop[2].toFixed(3)}</td>
+            </tr>`;
+        }
+        let steady_pop = [current_pop[0], current_pop[1], current_pop[2]];
+        for(let i=0; i<100; i++) {
+            steady_pop = [
+                P[0][0]*steady_pop[0] + P[0][1]*steady_pop[1] + P[0][2]*steady_pop[2],
+                P[1][0]*steady_pop[0] + P[1][1]*steady_pop[1] + P[1][2]*steady_pop[2],
+                P[2][0]*steady_pop[0] + P[2][1]*steady_pop[1] + P[2][2]*steady_pop[2]
+            ];
         }
 
-        drawChart(labels, history1, history2, history3);
+        tbody.innerHTML += `<tr class="infinity-row">
+            <td>∞</td>
+            <td>${steady_pop[0].toFixed(3)}</td>
+            <td>${steady_pop[1].toFixed(3)}</td>
+            <td>${steady_pop[2].toFixed(3)}</td>
+        </tr>`;
+
+        drawChart(labels, history1, history2, history3, steady_pop);
     }
 
-    function drawChart(labels, data1, data2, data3) {
+    function drawChart(labels, data1, data2, data3, steady_pop) {
         const ctx = document.getElementById('simulationChart').getContext('2d');
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
+        if (chartInstance) { chartInstance.destroy(); }
 
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Bölge 1', data: data1, borderColor: '#3498db', backgroundColor: '#3498db', fill: false, tension: 0.1, markerType: 'circle' },
-                    { label: 'Bölge 2', data: data2, borderColor: '#e67e22', backgroundColor: '#e67e22', fill: false, tension: 0.1 },
-                    { label: 'Bölge 3', data: data3, borderColor: '#2ecc71', backgroundColor: '#2ecc71', fill: false, tension: 0.1 }
+                    { label: 'City', data: data1, borderColor: '#3498db', backgroundColor: '#3498db', fill: false, tension: 0.1 },
+                    { label: 'Suburb', data: data2, borderColor: '#e67e22', backgroundColor: '#e67e22', fill: false, tension: 0.1 },
+                    { label: 'Rural', data: data3, borderColor: '#2ecc71', backgroundColor: '#2ecc71', fill: false, tension: 0.1 }
                 ]
             },
             options: {
                 responsive: true,
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: { display: true, text: 'Population Rate' },
-                        suggestedMax: 1
-                    },
-                    x: {
-                        title: { display: true, text: 'Time (Year)' }
-                    }
-                },
-                plugins: {
-                    title: { display: true, text: 'Convergence Graph to Equilibrium Distribution', font: { size: 16 } }
+                    y: { beginAtZero: true, suggestedMax: 1, title: { display: true, text: 'Population Rate' } },
+                    x: { title: { display: true, text: 'Time (Year)' } }
                 }
             }
         });
